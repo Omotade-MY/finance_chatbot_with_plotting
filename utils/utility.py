@@ -6,6 +6,8 @@ import openai
 import lida
 from lida import Manager, TextGenerationConfig , llm  
 import pandas as pd
+import os
+import io
 
 class ExcelLoader():
     def __init__(self, file):
@@ -28,9 +30,17 @@ class ExcelLoader():
         docs = []
         for i,sheet in enumerate(ssheet.sheet_names):
             df = ssheet.parse(sheet)
-            temp_path = f'./temp/{sheet}.csv'
-            docs.append(temp_path)
-            df.to_csv(temp_path, index=False)
+    
+            # Create an in-memory file-like object
+            temp_buffer = io.StringIO()
+
+            # Write DataFrame to the buffer instead of writing to disk
+            df.to_csv(temp_buffer, index=False)
+
+            # Reset the buffer position to the beginning
+            temp_buffer.seek(0)
+
+            docs.append(temp_buffer)
         return docs
 
 def process_csv_file(file):
@@ -177,7 +187,6 @@ def data_load(ext, file):
 
 def extract_data(text):
     import re
-    import io
     # Define the regex pattern to extract the CSV string
     pattern = r'<CSV>(.*?)<CSV>'
     match = re.search(pattern, text, re.DOTALL)
@@ -190,36 +199,34 @@ def extract_data(text):
 
         # Read the CSV into a pandas DataFrame
         df = pd.read_csv(csv_file)
-        try:
-            os.mkdir("temp")
-        except FileExistsError:
-            pass
-        n = randomName()+ ".csv"
-        path = os.path.join('temp', n)
-        df.to_csv(path, index=False)
+
+        # Create an in-memory file-like object
+        buffer = io.StringIO()  # For text data, you can use io.BytesIO() for binary data
+
+        # Save DataFrame to the buffer instead of writing to disk
+        df.to_csv(buffer, index=False)
 
         # Display the DataFrame
-        print(df)
+        print(buffer.getvalue())
     else:
         print("No CSV string found in the text.")
-    return path
+        buffer.seek()
+    return buffer
 
 
-def create_lida_data(file_path, file_name=None):
-    import pandas as pd
-    import os
-    assert isinstance(file_path, list)
-    try:
-        os.mkdir('temp')
-    except FileExistsError:
-        pass
-    file_name = f"LiDA{randomName()}"+".xlsx"
-    lida_file_path = os.path.join('temp',file_name)
-    with pd.ExcelWriter(lida_file_path) as writer:
+def create_lida_data(file_paths, file_name=None):
+    
+    assert isinstance(file_paths, list)
+    lida_buffer = io.BytesIO()
+
+    with pd.ExcelWriter(lida_buffer, engine='xlsxwriter') as writer:
         # Write each DataFrame to a different sheet
-        for i,file in enumerate(file_path):
+        for i, file in enumerate(file_paths):
             sheet = f'Sheet{i}'
-            df =  pd.read_csv(file)
+            df = pd.read_csv(file)
             df.to_excel(writer, sheet_name=sheet, index=False)
+    lida_buffer.seek(0)
+
+    # Return the file path
+    return lida_buffer
             
-    return lida_file_path

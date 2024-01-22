@@ -1,6 +1,6 @@
-__import__('pysqlite3')
-import sys
-sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+#__import__('pysqlite3')
+#import sys
+#sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 
 from agents.SQLagent import build_sql_agent
 from agents.csv_chat import build_csv_agent
@@ -103,9 +103,8 @@ def get_csv_file() -> Optional[str]:
                 Loader = Docx2txtLoader
 
             elif file.type == "text/csv":
-                flp = './temp.csv'
-                pd.read_csv(file).to_csv(flp, index=False)
-                csv_paths.append(flp)
+                #pd.read_csv(file).to_csv(flp, index=False)
+                csv_paths.append(file)
 
             elif file.type == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
                 loader = ut.ExcelLoader(file)
