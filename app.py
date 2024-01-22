@@ -28,10 +28,10 @@ from langchain.chains import ConversationalRetrievalChain
 import os
 import pandas as pd
 from dotenv import load_dotenv, find_dotenv
+import io
 
 #os.environ["OPENAI_API_KEY"] = "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"#"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"
 
-st.session_state.csv_file_paths = []
 
 
 text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
@@ -117,11 +117,11 @@ def get_csv_file() -> Optional[str]:
                 raise ValueError('File type is not supported')
 
             if Loader:
-                with tempfile.NamedTemporaryFile(delete=False) as tpfile:
-                    tpfile.write(file.getvalue())
-                    loader = Loader(tpfile.name)
-                    docs = loader.load()
-                    all_docs.extend(docs)
+                file_buffer = io.BytesIO(file.getvalue())
+                # Use the Loader to load data directly from the in-memory buffer
+                loader = Loader(file_buffer)
+                docs = loader.load()
+                all_docs.extend(docs)
 
             #text = "\n\n".join([page.extract_text() for page in pdf_reader.pages])
         if all_docs:
