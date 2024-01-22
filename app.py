@@ -267,6 +267,7 @@ def init_agent(model_name: str, temperature: float, **kwargs) -> Union[ChatOpenA
                                     host=host, port=port, database=database)
     if chain_mode == 'CSV|Excel':
         file_paths = kwargs['csv']
+
         if file_paths is not None:
             with st.spinner("Loading CSV FIle ..."):
                 llm_agent = build_csv_agent(llm, file_path=file_paths)
@@ -361,9 +362,10 @@ def get_answer(llm_chain,llm, message, chain_type=None) -> tuple[str, float]:
                             lida_data_path = ut.create_lida_data(file_paths)
 
                         with st.spinner("Generating chart"):
-                            rationale, img_path  = ut.generate_plot(lida_data_path, message)
+                            rationale, img_path, fig  = ut.generate_plot(lida_data_path, message)
                             st.session_state.messages.append({"role": "assistant", "content": rationale, "img_path": img_path})
                             ut.display(img_path, " ")
+                            #eval(fig)
                         answer = rationale
                     else:
                         #llm_chain.memory.chat_memory = st.session_state.messages
@@ -488,15 +490,21 @@ def main() -> None:
                             st.session_state.messages.append({"role": "assistant", "content": answer})
                             st.write(answer)
                             st.session_state.costs.append(cost)
-                        except ValueError:
-                            st.error("Oops!!! Internal Error trying to generate answer")
+                        except ValueError as e:
+                                err = str(e)
+                                raise e
+                                print(err)
+                                st.error("Oops!!! Internal Error trying to generate answer")
+
                 elif chain_mode == "Database":
                         with st.spinner("Assistant is typing ..."):
                             try:
                                 answer, cost = get_answer(llm_chain,llm, prompt, chain_type=chain_mode)
                                 st.write(answer)
                                 st.session_state.costs.append(cost)
-                            except ValueError:
+                            except ValueError as e:
+                                err = str(e)
+                                print(err)
                                 st.error("Oops!!! Internal Error trying to generate answer")
 
                 

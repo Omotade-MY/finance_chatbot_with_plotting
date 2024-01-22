@@ -22,11 +22,6 @@ class ExcelLoader():
         from langchain.document_loaders.csv_loader import CSVLoader
 
         ssheet = self.loader(self.file)
-        try:
-            os.mkdir('temp')
-
-        except FileExistsError:
-            pass
         docs = []
         for i,sheet in enumerate(ssheet.sheet_names):
             df = ssheet.parse(sheet)
@@ -96,15 +91,17 @@ def generate_plot(data_path, prompt=None,api_key=None):
         goals = lida.goals(summary, n=1, persona=persona, textgen_config=textgen_config)
         
     i = 0
+    st.write("Using Seaborn")
     library = "seaborn"
     plots = lida.visualize(summary=summary, goal=goals[i], textgen_config=textgen_config, library=library,)
-    st.write("Using Seaborn")
+    
     
     if len(plots) == 0:
+        st.write("Using Matplotlib")
         library = "matplotlib"
         textgen_config = TextGenerationConfig(n=1, temperature=0, use_cache=False)
         plots = lida.visualize(summary=summary, goal=goals[i], textgen_config=textgen_config, library=library,)
-        st.write("Using Matplotlib")
+        
 
     if len(plots) == 0:
         st.write("Could not generate a plot from your prompt. The below chart can be helpful")
@@ -125,7 +122,7 @@ def generate_plot(data_path, prompt=None,api_key=None):
     st.write(goals[i].visualization)
 
     
-    return caption, img_path
+    return caption, img_path, fig
 
 
 def classify_prompt(user_input):
@@ -222,11 +219,18 @@ def create_lida_data(file_paths, file_name=None):
     with pd.ExcelWriter(lida_buffer, engine='xlsxwriter') as writer:
         # Write each DataFrame to a different sheet
         for i, file in enumerate(file_paths):
+            file_buffer = io.StringIO()
+            file_buffer.write(file.getvalue().decode())
+            # Reset the buffer position to the beginning
+            file_buffer.seek(0)
             sheet = f'Sheet{i}'
-            df = pd.read_csv(file)
+            df = pd.read_csv(file_buffer)
             df.to_excel(writer, sheet_name=sheet, index=False)
     lida_buffer.seek(0)
 
     # Return the file path
-    return lida_buffer
+    #print(lida_buffer.getvalue())
+    #print(type(lida_buffer))
+    excel = pd.read_excel(lida_buffer)
+    return excel #lida_buffer.getvalue()
             
